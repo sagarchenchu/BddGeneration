@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BDD Generation – HTML to BDD</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f4f8;
+      color: #2d3748;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      padding: 1.5rem 2rem;
+      text-align: center;
+    }
+    header h1 { font-size: 2rem; letter-spacing: .5px; }
+    header p  { opacity: .85; margin-top: .4rem; }
+
+    main {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      padding: 1.75rem;
+    }
+    .card h2 {
+      font-size: 1.2rem;
+      margin-bottom: 1.2rem;
+      color: #4a5568;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: .6rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+
+    label { font-size: .875rem; font-weight: 600; color: #4a5568; }
+
+    .file-drop {
+      margin-top: .4rem;
+      border: 2px dashed #cbd5e0;
+      border-radius: 8px;
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+      grid-column: 1 / -1;
+    }
+    .file-drop:hover, .file-drop.over {
+      border-color: #667eea;
+      background: #f7f6ff;
+    }
+    .file-drop input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .file-drop .icon { font-size: 2rem; }
+    .file-drop p { margin-top: .5rem; color: #718096; font-size: .875rem; }
+    .file-name { margin-top: .5rem; font-weight: 600; color: #553c9a; }
+
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      margin-top: .4rem;
+      padding: .55rem .75rem;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-size: .9rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input[type="text"]:focus, input[type="password"]:focus {
+      border-color: #667eea;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: .6rem 1.4rem;
+      border: none;
+      border-radius: 8px;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+    }
+    button:active { transform: scale(.97); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+
+    .btn-primary  { background: #667eea; color: #fff; }
+    .btn-success  { background: #48bb78; color: #fff; }
+    .btn-secondary { background: #e2e8f0; color: #4a5568; }
+
+    .spinner {
+      display: none;
+      width: 18px; height: 18px;
+      border: 3px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-left: .5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .alert {
+      padding: .75rem 1rem;
+      border-radius: 8px;
+      font-size: .9rem;
+      margin-bottom: 1rem;
+    }
+    .alert-error   { background: #fff5f5; border: 1px solid #fc8181; color: #c53030; }
+    .alert-success { background: #f0fff4; border: 1px solid #68d391; color: #276749; }
+
+    .result-tabs {
+      display: flex;
+      gap: .5rem;
+      margin-bottom: 1rem;
+    }
+    .tab-btn {
+      padding: .4rem 1rem;
+      border-radius: 6px;
+      font-size: .875rem;
+      background: #e2e8f0;
+      color: #4a5568;
+      border: none;
+    }
+    .tab-btn.active { background: #667eea; color: #fff; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    pre {
+      background: #1a202c;
+      color: #e2e8f0;
+      padding: 1.25rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: .82rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .copy-btn {
+      float: right;
+      margin-top: -.2rem;
+      padding: .3rem .8rem;
+      font-size: .75rem;
+      background: #4a5568;
+      color: #e2e8f0;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+    }
+    .copy-btn:hover { background: #667eea; color: #fff; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🧪 BDD Generation</h1>
+  <p>Upload an HTML page → parse to structured JSON → generate BDD scenarios with AI</p>
+</header>
+
+<main>
+
+  <!-- Upload Card -->
+  <div class="card">
+    <h2>⬆️ Upload HTML Page</h2>
+
+    <div class="form-grid">
+      <!-- File Drop Zone -->
+      <div class="file-drop" id="fileDrop">
+        <input type="file" id="htmlFile" accept=".html,.htm" />
+        <div class="icon">📄</div>
+        <p>Drag &amp; drop an HTML file here, or <strong>click to browse</strong></p>
+        <div class="file-name" id="fileName">No file selected</div>
+      </div>
+
+      <!-- OpenAI API Key -->
+      <div>
+        <label for="apiKey">OpenAI API Key <span style="font-weight:400;color:#a0aec0">(for BDD generation)</span></label>
+        <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off" />
+      </div>
+
+      <!-- Model -->
+      <div>
+        <label for="model">Model</label>
+        <input type="text" id="model" value="gpt-4o-mini" placeholder="gpt-4o-mini" />
+      </div>
+    </div>
+
+    <div style="margin-top:1.2rem" class="btn-group">
+      <button class="btn-primary" id="parseBtn" disabled>
+        Parse HTML <span class="spinner" id="parseSpinner"></span>
+      </button>
+      <button class="btn-success" id="generateBtn" disabled>
+        Parse + Generate BDD <span class="spinner" id="generateSpinner"></span>
+      </button>
+      <button class="btn-secondary" id="resetBtn">Reset</button>
+    </div>
+  </div>
+
+  <!-- Results Card (hidden until there are results) -->
+  <div class="card" id="resultsCard" style="display:none">
+    <h2>📊 Results</h2>
+
+    <div id="alertBox"></div>
+
+    <div class="result-tabs">
+      <button class="tab-btn active" data-tab="json">Structured JSON</button>
+      <button class="tab-btn" data-tab="bdd" id="bddTabBtn" style="display:none">BDD Scenarios</button>
+    </div>
+
+    <div id="tab-json" class="tab-panel active">
+      <button class="copy-btn" onclick="copyText('jsonOutput')">Copy</button>
+      <pre id="jsonOutput"></pre>
+    </div>
+
+    <div id="tab-bdd" class="tab-panel">
+      <button class="copy-btn" onclick="copyText('bddOutput')">Copy</button>
+      <pre id="bddOutput"></pre>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const fileInput   = document.getElementById('htmlFile');
+  const fileDrop    = document.getElementById('fileDrop');
+  const fileNameEl  = document.getElementById('fileName');
+  const parseBtn    = document.getElementById('parseBtn');
+  const generateBtn = document.getElementById('generateBtn');
+  const resetBtn    = document.getElementById('resetBtn');
+  const resultsCard = document.getElementById('resultsCard');
+  const alertBox    = document.getElementById('alertBox');
+  const jsonOutput  = document.getElementById('jsonOutput');
+  const bddOutput   = document.getElementById('bddOutput');
+  const bddTabBtn   = document.getElementById('bddTabBtn');
+
+  // ── File selection ────────────────────────────────────────────────────────
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files[0];
+    if (f) {
+      fileNameEl.textContent = f.name;
+      parseBtn.disabled    = false;
+      generateBtn.disabled = false;
+    }
+  });
+
+  fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('over'); });
+  fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('over'));
+  fileDrop.addEventListener('drop', e => {
+    e.preventDefault();
+    fileDrop.classList.remove('over');
+    const f = e.dataTransfer.files[0];
+    if (f) {
+      const dt = new DataTransfer();
+      dt.items.add(f);
+      fileInput.files = dt.files;
+      fileNameEl.textContent = f.name;
+      parseBtn.disabled    = false;
+      generateBtn.disabled = false;
+    }
+  });
+
+  // ── Tabs ──────────────────────────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function setLoading(btn, spinner, loading) {
+    btn.disabled = loading;
+    spinner.style.display = loading ? 'inline-block' : 'none';
+  }
+
+  function showAlert(msg, type = 'error') {
+    alertBox.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  }
+
+  function buildFormData() {
+    const fd = new FormData();
+    fd.append('htmlFile', fileInput.files[0]);
+    const key = document.getElementById('apiKey').value.trim();
+    if (key) fd.append('apiKey', key);
+    fd.append('model', document.getElementById('model').value.trim() || 'gpt-4o-mini');
+    return fd;
+  }
+
+  function displayJson(data) {
+    jsonOutput.textContent = JSON.stringify(data, null, 2);
+    resultsCard.style.display = 'block';
+    alertBox.innerHTML = '';
+  }
+
+  function displayBdd(bdd) {
+    bddOutput.textContent = bdd;
+    bddTabBtn.style.display = 'inline-block';
+    // switch to BDD tab
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    bddTabBtn.classList.add('active');
+    document.getElementById('tab-bdd').classList.add('active');
+  }
+
+  window.copyText = function(id) {
+    const text = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      showAlert('Copied to clipboard!', 'success');
+      setTimeout(() => { alertBox.innerHTML = ''; }, 2000);
+    });
+  };
+
+  // ── Parse only ────────────────────────────────────────────────────────────
+  parseBtn.addEventListener('click', async () => {
+    const spinner = document.getElementById('parseSpinner');
+    setLoading(parseBtn, spinner, true);
+    try {
+      const res  = await fetch('/api/parse', { method: 'POST', body: buildFormData() });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Parse failed');
+      displayJson(body.data);
+      bddTabBtn.style.display = 'none';
+    } catch (e) {
+      showAlert(e.message);
+      resultsCard.style.display = 'block';
+    } finally {
+      setLoading(parseBtn, spinner, false);
+      parseBtn.disabled    = false;
+      generateBtn.disabled = false;
+    }
+  });
+
+  // ── Parse + Generate BDD ──────────────────────────────────────────────────
+  generateBtn.addEventListener('click', async () => {
+    const spinner = document.getElementById('generateSpinner');
+    setLoading(generateBtn, spinner, true);
+    try {
+      const res  = await fetch('/api/generate-bdd', { method: 'POST', body: buildFormData() });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Generation failed');
+      displayJson(body.data);
+      displayBdd(body.bdd);
+    } catch (e) {
+      showAlert(e.message);
+      resultsCard.style.display = 'block';
+    } finally {
+      setLoading(generateBtn, spinner, false);
+      parseBtn.disabled    = false;
+      generateBtn.disabled = false;
+    }
+  });
+
+  // ── Reset ─────────────────────────────────────────────────────────────────
+  resetBtn.addEventListener('click', () => {
+    fileInput.value = '';
+    fileNameEl.textContent = 'No file selected';
+    parseBtn.disabled    = true;
+    generateBtn.disabled = true;
+    resultsCard.style.display = 'none';
+    alertBox.innerHTML = '';
+    jsonOutput.textContent = '';
+    bddOutput.textContent  = '';
+    bddTabBtn.style.display = 'none';
+  });
+</script>
+</body>
+</html>

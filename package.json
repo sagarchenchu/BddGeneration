@@ -1,0 +1,24 @@
+{
+  "name": "bddgeneration",
+  "version": "1.0.0",
+  "description": "Html pages to BDD generation",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "jest --runInBand"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "multer": "^2.1.1",
+    "openai": "^4.52.7"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  }
+}
