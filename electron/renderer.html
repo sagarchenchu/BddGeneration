@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';" />
+  <title>BDD Generation</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f4f8;
+      color: #2d3748;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      padding: 1.25rem 2rem;
+      text-align: center;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+    header h1 { font-size: 1.75rem; letter-spacing: .5px; }
+    header p  { opacity: .85; margin-top: .3rem; font-size: .9rem; }
+
+    main {
+      flex: 1;
+      max-width: 880px;
+      width: 100%;
+      margin: 1.5rem auto;
+      padding: 0 1rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      padding: 1.5rem;
+    }
+    .card h2 {
+      font-size: 1.05rem;
+      margin-bottom: 1.1rem;
+      color: #4a5568;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: .5rem;
+    }
+
+    .field-row {
+      display: flex;
+      gap: .75rem;
+      align-items: flex-end;
+      margin-bottom: .9rem;
+    }
+    .field-row:last-child { margin-bottom: 0; }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    label {
+      font-size: .8rem;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: .3rem;
+    }
+    label span { font-weight: 400; color: #a0aec0; }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: .5rem .7rem;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-size: .875rem;
+      outline: none;
+      transition: border-color .2s;
+      background: #f7fafc;
+    }
+    input[type="text"]:focus,
+    input[type="password"]:focus { border-color: #667eea; background: #fff; }
+    input[readonly] { cursor: default; color: #553c9a; font-weight: 500; }
+
+    button {
+      padding: .5rem 1.1rem;
+      border: none;
+      border-radius: 7px;
+      font-size: .875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+      white-space: nowrap;
+    }
+    button:active { transform: scale(.97); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    .btn-browse   { background: #e2e8f0; color: #4a5568; }
+    .btn-browse:hover:not(:disabled) { background: #cbd5e0; }
+
+    .btn-primary  { background: #667eea; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #5a67d8; }
+
+    .btn-success  { background: #48bb78; color: #fff; }
+    .btn-success:hover:not(:disabled) { background: #38a169; }
+
+    .btn-group {
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+      margin-top: 1.2rem;
+    }
+
+    .spinner {
+      display: none;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-left: .4rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .alert {
+      padding: .65rem .9rem;
+      border-radius: 7px;
+      font-size: .855rem;
+      margin-bottom: .9rem;
+    }
+    .alert-error   { background: #fff5f5; border: 1px solid #fc8181; color: #c53030; }
+    .alert-success { background: #f0fff4; border: 1px solid #68d391; color: #276749; }
+    .alert-info    { background: #ebf8ff; border: 1px solid #63b3ed; color: #2b6cb0; }
+
+    .result-tabs {
+      display: flex;
+      gap: .4rem;
+      margin-bottom: .9rem;
+    }
+    .tab-btn {
+      padding: .35rem .9rem;
+      border-radius: 6px;
+      font-size: .82rem;
+      background: #e2e8f0;
+      color: #4a5568;
+      border: none;
+      cursor: pointer;
+    }
+    .tab-btn.active { background: #667eea; color: #fff; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    pre {
+      background: #1a202c;
+      color: #e2e8f0;
+      padding: 1.1rem;
+      border-radius: 8px;
+      overflow: auto;
+      font-size: .8rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 340px;
+    }
+
+    .copy-btn {
+      float: right;
+      margin-bottom: .3rem;
+      padding: .28rem .7rem;
+      font-size: .75rem;
+      background: #4a5568;
+      color: #e2e8f0;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+    }
+    .copy-btn:hover { background: #667eea; color: #fff; }
+
+    .saved-note {
+      display: inline-block;
+      margin-left: .6rem;
+      font-size: .78rem;
+      color: #276749;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🧪 BDD Generation</h1>
+  <p>Upload an HTML page → parse to structured JSON → generate BDD scenarios with AI</p>
+</header>
+
+<main>
+
+  <!-- ── Input Card ──────────────────────────────────────────────────────── -->
+  <div class="card">
+    <h2>📂 Input</h2>
+
+    <!-- HTML File -->
+    <div class="field-row">
+      <div class="field-group">
+        <label for="htmlFilePath">HTML File</label>
+        <input type="text" id="htmlFilePath" readonly placeholder="No file selected…" />
+      </div>
+      <button class="btn-browse" id="browseFileBtn">Browse…</button>
+    </div>
+
+    <!-- Output Folder -->
+    <div class="field-row">
+      <div class="field-group">
+        <label for="outputDir">Output Folder <span>(optional – saves JSON &amp; .feature file)</span></label>
+        <input type="text" id="outputDir" readonly placeholder="No folder selected (results shown on screen only)…" />
+      </div>
+      <button class="btn-browse" id="browseDirBtn">Browse…</button>
+    </div>
+
+    <!-- API Key + Model -->
+    <div class="field-row">
+      <div class="field-group">
+        <label for="apiKey">OpenAI API Key <span>(required for BDD generation)</span></label>
+        <input type="password" id="apiKey" placeholder="sk-…" autocomplete="off" />
+      </div>
+      <div class="field-group" style="max-width:170px">
+        <label for="model">Model</label>
+        <input type="text" id="model" value="gpt-4o-mini" placeholder="gpt-4o-mini" />
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="btn-group">
+      <button class="btn-primary" id="parseBtn" disabled>
+        📋 Generate Structured JSON
+        <span class="spinner" id="parseSpinner"></span>
+      </button>
+      <button class="btn-success" id="generateBtn" disabled>
+        🤖 Generate BDD with AI
+        <span class="spinner" id="generateSpinner"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Results Card ────────────────────────────────────────────────────── -->
+  <div class="card" id="resultsCard" style="display:none">
+    <h2>📊 Results</h2>
+
+    <div id="alertBox"></div>
+
+    <div class="result-tabs">
+      <button class="tab-btn active" data-tab="json">Structured JSON</button>
+      <button class="tab-btn" data-tab="bdd" id="bddTabBtn" style="display:none">BDD Scenarios</button>
+    </div>
+
+    <div id="tab-json" class="tab-panel active">
+      <button class="copy-btn" id="copyJsonBtn">Copy</button>
+      <span class="saved-note" id="jsonSavedNote"></span>
+      <pre id="jsonOutput"></pre>
+    </div>
+
+    <div id="tab-bdd" class="tab-panel">
+      <button class="copy-btn" id="copyBddBtn">Copy</button>
+      <span class="saved-note" id="bddSavedNote"></span>
+      <pre id="bddOutput"></pre>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const api = window.electronAPI;
+
+  let selectedFilePath = null;
+
+  const htmlFilePathEl  = document.getElementById('htmlFilePath');
+  const outputDirEl     = document.getElementById('outputDir');
+  const apiKeyEl        = document.getElementById('apiKey');
+  const modelEl         = document.getElementById('model');
+  const parseBtn        = document.getElementById('parseBtn');
+  const generateBtn     = document.getElementById('generateBtn');
+  const resultsCard     = document.getElementById('resultsCard');
+  const alertBox        = document.getElementById('alertBox');
+  const jsonOutput      = document.getElementById('jsonOutput');
+  const bddOutput       = document.getElementById('bddOutput');
+  const bddTabBtn       = document.getElementById('bddTabBtn');
+  const jsonSavedNote   = document.getElementById('jsonSavedNote');
+  const bddSavedNote    = document.getElementById('bddSavedNote');
+
+  // ── Browse HTML file ──────────────────────────────────────────────────────
+  document.getElementById('browseFileBtn').addEventListener('click', async () => {
+    const fp = await api.openFileDialog();
+    if (!fp) return;
+    selectedFilePath = fp;
+    htmlFilePathEl.value = fp;
+    parseBtn.disabled    = false;
+    generateBtn.disabled = false;
+  });
+
+  // ── Browse output folder ──────────────────────────────────────────────────
+  document.getElementById('browseDirBtn').addEventListener('click', async () => {
+    const dir = await api.openDirDialog();
+    if (dir) outputDirEl.value = dir;
+  });
+
+  // ── Tabs ──────────────────────────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function setLoading(btn, spinnerId, loading) {
+    btn.disabled = loading;
+    document.getElementById(spinnerId).style.display = loading ? 'inline-block' : 'none';
+  }
+
+  function showAlert(msg, type = 'error') {
+    alertBox.innerHTML = `<div class="alert alert-${type}">${escHtml(msg)}</div>`;
+  }
+
+  function clearAlert() { alertBox.innerHTML = ''; }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function showJson(data) {
+    jsonOutput.textContent = JSON.stringify(data, null, 2);
+    resultsCard.style.display = 'block';
+    // switch to JSON tab
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelector('.tab-btn[data-tab="json"]').classList.add('active');
+    document.getElementById('tab-json').classList.add('active');
+  }
+
+  function showBdd(bddText) {
+    bddOutput.textContent = bddText;
+    bddTabBtn.style.display = 'inline-block';
+    // switch to BDD tab
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    bddTabBtn.classList.add('active');
+    document.getElementById('tab-bdd').classList.add('active');
+  }
+
+  async function trySave(dir, filename, content) {
+    if (!dir) return null;
+    const outPath = joinPath(dir, filename);
+    await api.saveFile(outPath, content);
+    return outPath;
+  }
+
+  function joinPath(dir, filename) {
+    const sep = dir.includes('\\') ? '\\' : '/';
+    return dir + sep + filename;
+  }
+
+  function baseName(fp) {
+    return fp.replace(/\\/g, '/').split('/').pop().replace(/\.[^.]+$/, '');
+  }
+
+  // ── Copy buttons ──────────────────────────────────────────────────────────
+  document.getElementById('copyJsonBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(jsonOutput.textContent);
+  });
+  document.getElementById('copyBddBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(bddOutput.textContent);
+  });
+
+  // ── Generate Structured JSON ──────────────────────────────────────────────
+  parseBtn.addEventListener('click', async () => {
+    if (!selectedFilePath) return;
+    clearAlert();
+    jsonSavedNote.textContent = '';
+    setLoading(parseBtn, 'parseSpinner', true);
+    try {
+      const pageJson = await api.parseHtml(selectedFilePath);
+      showJson(pageJson);
+      bddTabBtn.style.display = 'none';
+
+      // save to output folder if specified
+      const dir = outputDirEl.value.trim();
+      if (dir) {
+        const fname = baseName(selectedFilePath) + '_structured.json';
+        await trySave(dir, fname, JSON.stringify(pageJson, null, 2));
+        jsonSavedNote.textContent = `✔ Saved as ${fname}`;
+      }
+    } catch (e) {
+      showAlert(e.message || String(e));
+      resultsCard.style.display = 'block';
+    } finally {
+      setLoading(parseBtn, 'parseSpinner', false);
+      parseBtn.disabled    = false;
+      generateBtn.disabled = false;
+    }
+  });
+
+  // ── Generate BDD with AI ──────────────────────────────────────────────────
+  generateBtn.addEventListener('click', async () => {
+    if (!selectedFilePath) return;
+    const apiKey = apiKeyEl.value.trim();
+    if (!apiKey) {
+      showAlert('Please enter your OpenAI API key before generating BDD scenarios.');
+      resultsCard.style.display = 'block';
+      return;
+    }
+    clearAlert();
+    jsonSavedNote.textContent = '';
+    bddSavedNote.textContent  = '';
+    setLoading(generateBtn, 'generateSpinner', true);
+    try {
+      const model  = modelEl.value.trim() || 'gpt-4o-mini';
+      const result = await api.generateBdd(selectedFilePath, apiKey, model);
+      showJson(result.json);
+      showBdd(result.bdd);
+
+      // save to output folder if specified
+      const dir = outputDirEl.value.trim();
+      if (dir) {
+        const base = baseName(selectedFilePath);
+        await trySave(dir, base + '_structured.json', JSON.stringify(result.json, null, 2));
+        await trySave(dir, base + '.feature', result.bdd);
+        jsonSavedNote.textContent = `✔ Saved ${base}_structured.json`;
+        bddSavedNote.textContent  = `✔ Saved ${base}.feature`;
+      }
+    } catch (e) {
+      showAlert(e.message || String(e));
+      resultsCard.style.display = 'block';
+    } finally {
+      setLoading(generateBtn, 'generateSpinner', false);
+      parseBtn.disabled    = false;
+      generateBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
