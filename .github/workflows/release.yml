@@ -3,8 +3,13 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'          # triggers on v0.1, v1.0.0, etc.
-  workflow_dispatch:  # allows manual trigger from GitHub UI
+      - 'v*'          # auto-triggers on v0.1, v1.0.0, etc.
+  workflow_dispatch:  # manual trigger from GitHub Actions UI
+    inputs:
+      version:
+        description: 'Release version (e.g. 0.1 or 1.2.3)'
+        required: true
+        default: '0.1'
 
 permissions:
   contents: write     # needed to create releases and upload assets
@@ -17,6 +22,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4.2.2
+
+      - name: Determine release tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="v${{ github.event.inputs.version }}"
+          else
+            TAG="${{ github.ref_name }}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4.4.0
@@ -43,23 +59,23 @@ jobs:
       - name: Create GitHub Release and upload installer
         uses: softprops/action-gh-release@v2.3.2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: "BDD Generation ${{ github.ref_name }}"
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "BDD Generation ${{ steps.tag.outputs.tag }}"
           body: |
-            ## BDD Generation ${{ github.ref_name }}
+            ## BDD Generation ${{ steps.tag.outputs.tag }}
 
             Desktop application for generating structured JSON and Gherkin BDD scenarios from HTML pages.
 
             ### Installation
             1. Download **${{ steps.find_artifact.outputs.exe_name }}** below
-            2. Run the installer – you can choose the installation directory
+            2. Run the installer — you can choose the installation directory
             3. Launch **BDD Generation** from the Start Menu or Desktop shortcut
 
             ### How to use
             - **Browse…** → select any `.html` / `.htm` file
             - *(Optional)* **Browse…** → pick an output folder to auto-save results
             - Enter your **OpenAI API Key** (only needed for BDD generation)
-            - Click **Generate Structured JSON** to parse the HTML
+            - Click **Generate Structured JSON** to parse the HTML into a structured JSON file
             - Click **Generate BDD with AI** to produce Gherkin scenarios via OpenAI
           files: ${{ steps.find_artifact.outputs.exe_path }}
           draft: false
